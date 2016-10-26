@@ -1,0 +1,262 @@
+/* WorkoutPanel.java
+ CS230 Final Project 
+ Lucy Shen & Christina Pollalis
+ Date: 12/3/14
+ Description: This is the workout panel. This is where each user 
+ can input their exercises for the day. By pressing "refresh", they 
+ will see all their workouts for the current day displayed in the table.
+ Work division: written together by Lucy and Christina
+ */
+
+import java.awt.*;
+import javax.swing.*;
+import javax.swing.JScrollPane; //for scrolling in table
+import java.awt.Dimension; //for dimension of table
+import java.awt.GridLayout; //for grid layout of table
+import javax.swing.table.DefaultTableModel; //table
+import java.util.Hashtable; //hashtable
+import java.util.LinkedList; //linkedlist
+import javax.swing.event.*;
+import java.awt.event.*;
+
+public class WorkoutPanel extends JPanel {
+  
+  //initialize panels
+  //largeest two halves
+  private JPanel topHalf, bottomHalf;
+  
+  //things that go in topHalf
+  private JPanel third1, third2;
+  
+  //components that go in third1
+  private JLabel hello, todayIs, filler, directions;
+  
+  //components that go in third2
+  private JLabel workoutLabel, minuteLabel;
+  private JComboBox workoutCombo, minuteCombo;
+  private JButton submitWorkout, refreshButton;
+  final private String[] workoutDropdown = new String[6]; //CHANGE THIS: # OF WORKOUTS MAY CHANGE
+  final private String[] minuteDropdown = new String[31]; //max workout time is an hour
+  final private String[] dayOfWeek = new String[7]; //this will hold all the days in strings
+  
+  //components that go in third3
+  private JLabel weekOf;
+  
+  //components that go in bottomHalf
+  private DefaultTableModel model;
+  private JTable tableDisplay;
+  
+  //list of workouts
+  private WorkoutList allWorkouts;
+  
+  //adding a workout session
+  private WorkoutSession sessionToAdd;
+  
+  /***********************************************
+    * THE GAME
+    * ********************************************/
+  private Game mainGame;
+  
+  /***********************************************
+    * will be intialized by the action listeners
+    * ********************************************/
+  private String workoutName;
+  private int workoutTime;
+  private WorkoutKind getKind;
+  private int workoutIndex, minuteIndex; //dropdown values
+  
+  /***********************************************
+    * Panel constructor
+    * ********************************************/
+  public WorkoutPanel(Game inputGame) {
+    mainGame = inputGame;
+    
+    allWorkouts = new WorkoutList();
+    
+    setLayout(new GridLayout(2,1));
+    
+    //initializing the panels
+    topHalf = new JPanel();
+    bottomHalf = new JPanel();
+    topHalf.setLayout(new GridLayout(2,1));
+    bottomHalf.setLayout(new BoxLayout(bottomHalf, BoxLayout.Y_AXIS));
+    //panels inside topHalf
+    third1 = new JPanel();
+    third1.setLayout(new BoxLayout(third1, BoxLayout.Y_AXIS));
+    third2 = new JPanel();
+    
+    //populate dayOfWeek
+    dayOfWeek[0] = "Sunday";
+    dayOfWeek[1] = "Monday";
+    dayOfWeek[2] = "Tuesday";
+    dayOfWeek[3] = "Wednesday";
+    dayOfWeek[4] = "Thursday";
+    dayOfWeek[5] = "Friday";
+    dayOfWeek[6] = "Saturday";
+    
+    
+    //initialize components
+    //components for third1
+    if (mainGame.getCurrentPlayer().toString().equals("Empty")){
+      hello = new JLabel("Hello! Hit refresh to see changes.");
+    } else {
+      hello = new JLabel("Hello, " + mainGame.getCurrentPlayer() + "!");
+    }
+    hello.setAlignmentX(Component.CENTER_ALIGNMENT);
+    hello.setFont(new Font("New Baskerville", Font.PLAIN, 25)); 
+    todayIs = new JLabel("Today is: " + dayOfWeek[mainGame.getWeekDay()]);
+    todayIs.setAlignmentX(Component.CENTER_ALIGNMENT);
+    todayIs.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    filler = new JLabel(" ");
+    filler.setAlignmentX(Component.CENTER_ALIGNMENT);
+    filler.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    directions = new JLabel("Enter your workout below:");
+    directions.setAlignmentX(Component.CENTER_ALIGNMENT);
+    directions.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    //components for third2
+    workoutLabel = new JLabel("Workout: ");
+    workoutLabel.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    minuteLabel = new JLabel("Minutes: ");
+    minuteLabel.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    
+    
+    
+    //populate workoutDropdown
+    workoutDropdown[0] = "...";
+    int listIndex = 0;
+    LinkedList<WorkoutKind> dropdownPopulator= allWorkouts.getAllWorkouts();
+    for (int i = 1; i < workoutDropdown.length; i++){
+      workoutDropdown[i] = dropdownPopulator.get(i-1).toString();
+    }  
+    
+    //poplate minuteDropdown
+    minuteDropdown[0] = "...";
+    int counter = 1;
+    for (int i = 1; i<minuteDropdown.length; i++){
+      minuteDropdown[i] = Integer.toString(counter);
+      counter++;
+    }
+    
+    //initialize dropdown variables
+    workoutIndex = 0;
+    minuteIndex = 0;
+    
+    //create dropdown menus
+    ComboListener dropdownListener = new ComboListener();
+    ButtonListener submitListener = new ButtonListener();
+    workoutCombo = new JComboBox(workoutDropdown);
+    minuteCombo = new JComboBox(minuteDropdown);
+    submitWorkout = new JButton("Submit");
+    submitWorkout.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    refreshButton = new JButton("Refresh");
+    refreshButton.setFont(new Font("New Baskerville", Font.PLAIN, 17)); 
+    workoutCombo.addActionListener(dropdownListener);
+    minuteCombo.addActionListener(dropdownListener);
+    submitWorkout.addActionListener(submitListener);
+    refreshButton.addActionListener(submitListener);
+    
+    
+    //add components
+    //add components in third1
+    Color lightOrange = new Color (244, 186, 112);
+    third1.setBackground(lightOrange);
+    third1.add(hello);
+    third1.add(todayIs);
+    third1.add(filler);
+    third1.add(directions);
+    
+    //add components in third2
+    third2.setBackground(lightOrange);
+    third2.add(workoutLabel);
+    third2.add(workoutCombo);
+    third2.add(minuteLabel);
+    third2.add(minuteCombo);
+    third2.add(submitWorkout);
+    third2.add(refreshButton);
+    
+    //making the table
+    model = new DefaultTableModel();
+    model.addColumn("Workout");
+    model.addColumn("Time");
+    model.addColumn("Points");
+    tableDisplay = new JTable(model);
+    tableDisplay.setPreferredScrollableViewportSize(new Dimension(600,100));
+    tableDisplay.setFillsViewportHeight(true);
+    
+    JScrollPane scrollPane = new JScrollPane(tableDisplay);
+    bottomHalf.add(scrollPane);
+    bottomHalf.setBackground(lightOrange);
+    
+    //adding panels
+    add(topHalf);
+    add(bottomHalf);
+    //adding things to topHalf
+    topHalf.add(third1);
+    topHalf.add(third2);
+    
+  }
+  
+  private class ButtonListener implements ActionListener {
+    
+    //gets the name inputted in the text field to add
+    public void actionPerformed(ActionEvent event){
+      Object sourceObject = event.getSource();
+      //if the user presses the submit button
+      if (sourceObject==submitWorkout) {
+        //check if anyone is even logged in
+        Player active = mainGame.getCurrentPlayer();
+        if (active.toString().equals("Empty")){ //if not logged in, pop up to notify
+          JOptionPane.showMessageDialog(null, "Please sign in to add workouts.");
+        } else { //if they are logged in, allow workout adding
+          //test to see if workoutName and workoutTime are valid
+          if ((workoutIndex == 0) || (minuteIndex == 0)) {
+            JOptionPane.showMessageDialog(null, "Please input a workout and time.");
+          } else {
+            //adds a row to the table based on what is inputted
+            model.addRow(new Object[]{workoutName,workoutTime,sessionToAdd.getSessionPoints()});
+            System.out.println("adding: " + getKind);
+            active.addWorkoutToDay(mainGame.getWeekDay(),sessionToAdd);
+          }
+        }
+      } else if (sourceObject==refreshButton) { //hitting the refresh button
+        //clear the table (from previous users)
+        model.setRowCount(0);
+        //adds all the workouts for that day
+        LinkedList<WorkoutSession> dayWorkouts = mainGame.getCurrentPlayer().getOneDay(mainGame.getWeekDay()).getWorkoutsList();
+        for (int i = 0; i<dayWorkouts.size(); i++) {
+          model.addRow(new Object[]{dayWorkouts.get(i).getSessionName(),dayWorkouts.get(i).getDuration(),dayWorkouts.get(i).getSessionPoints()});
+        }
+        //if the user still isn't logged in...
+        if (mainGame.getCurrentPlayer().toString().equals("Empty")){
+          hello.setText("Hello! Please log in.");
+        } else { //greet them if they are logged in
+          hello.setText("Hello, " + mainGame.getCurrentPlayer() + "!");
+        }
+      }
+    }
+  }
+  
+  //this listener is for the dropdown boxes, getting the information stored
+  private class ComboListener implements ActionListener {
+    
+    //gets the name inputted in the text field to add
+    public void actionPerformed(ActionEvent event){
+      
+      //the index of the workout that the user has selected
+      workoutIndex = workoutCombo.getSelectedIndex();
+      //the index of the number of minutes the player has inputted
+      minuteIndex = minuteCombo.getSelectedIndex();
+      
+      if ((workoutIndex != 0) && (minuteIndex != 0)) {
+        //once they're properly filled, store the values and reset the message
+        workoutName = workoutDropdown[workoutIndex];
+        workoutTime = Integer.parseInt(minuteDropdown[minuteIndex]);
+        getKind = allWorkouts.getWorkoutKind(workoutName);
+        //will be added in other listener
+        sessionToAdd = new WorkoutSession(getKind,workoutTime);
+      }
+    }
+  }
+  
+}
+
